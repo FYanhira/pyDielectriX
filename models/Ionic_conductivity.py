@@ -8,13 +8,13 @@ class IonicModel(BaseModel):
     def __init__(self):
         super().__init__("Ionic")
         self.params_init = {
-            'eps_inf1': (None, 0.5, 10),
-            'eps_s1': (None, 0.6, 500),
-            'eps_inf2': (None, 0.5, 10),
-            'eps_s2': (None, 0.6, 500),
-            'tau_alpha': (1e-4, 1e-9, 1e-1),
-            'tau_beta': (1e-4, 1e-9, 1e-1),
-            'tau_gamma': (1e-4, 1e-9, 1e-1),
+            'eps_inf1': (None, None, None),
+            'eps_s1': (None, None, None),
+            'eps_inf2': (None, None, None),
+            'eps_s2': (None, None, None),
+            'tau_alpha': (1e-4, 1e-10, 1),
+            'tau_beta': (1e-4, 1e-10, 1),
+            'tau_gamma': (1e-4, 1e-10, 1),
             'alpha': (0.5, 0.01, 1.0), 
             'beta': (0.5, 0.01, 1.0),   
             'gamma': (0.5, 0.01, 1.0),
@@ -24,10 +24,12 @@ class IonicModel(BaseModel):
         return self.params_init
 
     def set_auto_params_from_data(self, eps_real, n_points=5):
-        flex_factor = 1.5  # Ampliar el rango hasta ±150%
+        flex_factor = 10
 
-        avg_low_freq = np.mean(eps_real[:n_points])
-        avg_high_freq = np.mean(eps_real[-n_points:])
+        avg_low_freq   = np.mean(eps_real[-n_points:])                    # baja frecuencia
+        avg_mid_low    = np.mean(eps_real[-n_points:])       # intermedia-baja
+        avg_mid_high   = np.mean(eps_real[-n_points:])       # intermedia-alta
+        avg_high_freq  = np.mean(eps_real[-n_points:]) 
 
         _, min_s, max_s = self.params_init['eps_s1']
         _, min_inf, max_inf = self.params_init['eps_inf1']
@@ -36,38 +38,37 @@ class IonicModel(BaseModel):
 
         self.params_init['eps_s1'] = (
             avg_low_freq,
-            min_s,
-            max(max_s, avg_low_freq * flex_factor)
+            avg_low_freq / flex_factor,
+            avg_low_freq * flex_factor
+        )
+        self.params_init['eps_s2'] = (
+            avg_mid_low,
+            avg_mid_low / flex_factor,
+            avg_mid_low * flex_factor
         )
         self.params_init['eps_inf1'] = (
-            avg_high_freq,
-            min_inf,
-            max(max_inf, avg_high_freq * flex_factor)
-        )    
-        self.params_init['eps_s2'] = (
-            avg_low_freq,
-            min_inf,
-            max(max_inf, avg_high_freq * flex_factor)
-        )    
+            avg_mid_high,
+            avg_mid_high / flex_factor,
+            avg_mid_high * flex_factor
+        )
         self.params_init['eps_inf2'] = (
             avg_high_freq,
-            min_inf,
-            max(max_inf, avg_high_freq * flex_factor)
-        )    
+            avg_high_freq / flex_factor,
+            avg_high_freq * flex_factor
+        )
+        
 
     def model_function(self, f, eps_inf1, eps_s1, eps_inf2, eps_s2, tau_alpha, tau_beta, tau_gamma, alpha, beta, gamma):
         w = 2 * np.pi * f
 
-        A1 = (w * tau_alpha) ** (-alpha) * np.cos(alpha * np.pi / 2) + \
-             (w * tau_beta) ** (-beta) * np.cos(beta * np.pi / 2)
-        A2 = (w * tau_alpha) ** (-alpha) * np.sin(alpha * np.pi / 2) + \
-             (w * tau_beta) ** (-beta) * np.sin(beta * np.pi / 2)
-        A3 = (w * tau_gamma) ** (-gamma) * np.cos(gamma * np.pi / 2)
-        A4 = (w * tau_gamma) ** (-gamma) * np.sin(gamma * np.pi / 2)
+        A1 = (((w * tau_alpha)**(-alpha)) * (np.cos(alpha * np.pi / 2))) + (((w * tau_beta)**(-beta)) * (np.cos(beta * np.pi / 2)))
+        A2 = (((w * tau_alpha)**(-alpha)) * (np.sin(alpha * np.pi / 2))) + (((w * tau_beta)**(-beta)) * (np.sin(beta * np.pi / 2)))
+        A3 = ((w * tau_gamma)**(-gamma)) * (np.cos(gamma * np.pi / 2))
+        A4 = ((w * tau_gamma)**(-gamma)) * (np.sin(gamma * np.pi / 2))
 
         # Ecuaciones de ε′ y ε″ como parte de un número complejo
-        eps_real = (eps_s1 - ((eps_s1 - eps_inf1) * (1 + A1)) / ((1 + A1)**2 + A2**2))+(eps_s2-eps_inf2)*A3
-        eps_imag = (((eps_s1 - eps_inf1) * A2) / ((1 + A1)**2 + A2**2))+(eps_s2-eps_inf2)*A4
+        eps_real = eps_s1 - (((eps_s1 - eps_inf1) * (1 + A1)) / (((1 + A1)**2) + (A2)**2)) + ((eps_s2-eps_inf2) * A3)
+        eps_imag = (((eps_s1 - eps_inf1) * A2) / (((1 + A1)**2) + (A2)**2)) + ((eps_s2-eps_inf2) * A4)
 
         return eps_real + 1j * eps_imag  # NOTA: Usamos +1j aquí porque lmfit maneja np.real e np.imag por separado
 

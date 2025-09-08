@@ -8,49 +8,49 @@ class ColeColeModel(BaseModel):
     def __init__(self):
         super().__init__("Cole-Cole")
         self.params_init = {
-            'eps_inf': (None, 0.5, 10),
-            'eps_s': (None, 0.6, 500),
-            'tau': (1e-4, 1e-9, 1e-1),
-            'alpha': (0.2, 0.0, 1.0),
+            'eps_inf': (None, None, None),
+            'eps_s': (None, None, None),
+            'tau': (1e-4, 1e-6, 1e-1),
+            'alpha': (0.5, 0.0, 1.0),
         }
 
     def get_params(self):
         return self.params_init
 
     def set_auto_params_from_data(self, eps_real, n_points=5):
-        flex_factor = 1.5  # Ampliar el rango hasta ±150%
+        """
+        Calcula eps_s y eps_inf automáticos y sus rangos en base a datos.
+        """
+        flex_factor = 2
 
-        avg_low_freq = np.mean(eps_real[:n_points])
-        avg_high_freq = np.mean(eps_real[-n_points:])
+        avg_low_freq = np.mean(eps_real[:n_points])   # baja frecuencia
+        avg_high_freq = np.mean(eps_real[-n_points:]) # alta frecuencia
 
-        _, min_s, max_s = self.params_init['eps_s']
-        _, min_inf, max_inf = self.params_init['eps_inf']
-
+        # Definir valores y rangos calculados dinámicamente
         self.params_init['eps_s'] = (
             avg_low_freq,
-            min_s,
-            max(max_s, avg_low_freq * flex_factor)
+            avg_low_freq / flex_factor,
+            avg_low_freq * flex_factor
         )
         self.params_init['eps_inf'] = (
             avg_high_freq,
-            min_inf,
-            max(max_inf, avg_high_freq * flex_factor)
+            avg_high_freq / flex_factor,
+            avg_high_freq * flex_factor
         )
 
     def model_function(self, f, eps_inf, eps_s, tau, alpha):
             w = 2 * np.pi * f
             delta_eps = eps_s - eps_inf
 
-            A1 = (w * tau)**(-alpha) * np.cos(alpha * np.pi / 2)
-            A2 = (w * tau)**(-alpha) * np.sin(alpha * np.pi / 2)
+            A1 = (w * tau)**(1 - alpha) * np.cos((1 - alpha) * np.pi / 2)
+            A2 = (w * tau)**(1 - alpha) * np.sin((1 - alpha) * np.pi / 2)
 
             denom = (1 + A1)**2 + A2**2
 
-            eps_real = eps_s - delta_eps * (1 + A1) / denom
+            eps_real = eps_inf + delta_eps * (1 + A1) / denom
             eps_imag = delta_eps * A2 / denom
 
             return eps_real + 1j * eps_imag
-
 
     def fit(self, f, eps_real, eps_imag, user_params=None):
         def model_real(f, eps_inf, eps_s, tau, alpha):

@@ -1,0 +1,25 @@
+// pyDipolAI Workflow
+digraph {
+	rankdir=TB size=8
+	node [color=lightblue2 fontname=Helvetica shape=box style="rounded,filled"]
+	1 [label="Load experimental data
+(f, ε′r, ε″r)"]
+	2 [label="Select model(s) via GUI"]
+	3 [label="Initialize parameters"]
+	4 [label="Perform nonlinear fitting
++ Bayesian optimization (optional)"]
+	5 [label="Evaluate fit quality
+(R², MSE, AAD)"]
+	6 [label="Apply FBN for ranking/selection"]
+	7 [label="Visualize results
+(ε*r and M*)"]
+	8 [label="Export outputs
+(publication/analysis)"]
+	1 -> 2
+	2 -> 3
+	3 -> 4
+	4 -> 5
+	5 -> 6
+	6 -> 7
+	7 -> 8
+}

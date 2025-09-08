@@ -6,6 +6,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from sklearn.metrics import mean_squared_error, r2_score
+from PIL import Image
+import io
 
 # ---- BO starter (as provided by you) ----
 from optim.bo_starter import BayesianStarter
@@ -269,24 +271,24 @@ class DielectricGUI:
             ylabels = ["Real part M'", "Imaginary part M''", "Tan δ = M''/M'", ("M'","M''")]
 
         # Gráfica 1
-        axs[0].semilogx(self.freq, eps_real, 'k.', label='Data')
-        axs[0].set_xlabel("ω (rad/s)")
-        axs[0].set_ylabel(ylabels[0])
+        axs[0].semilogx(self.freq, eps_real, 'ko', label='Data', markersize=6 )
+        axs[0].set_xlabel("ω (rad/s)", fontsize=12, fontweight="bold")
+        axs[0].set_ylabel(ylabels[0], fontsize=12, fontweight="bold")
 
         # Gráfica 2
-        axs[1].semilogx(self.freq, eps_imag, 'k.', label='Data')
-        axs[1].set_xlabel("ω (rad/s)")
-        axs[1].set_ylabel(ylabels[1])
+        axs[1].semilogx(self.freq, eps_imag, 'ko', label='Data', markersize=6)
+        axs[1].set_xlabel("ω (rad/s)", fontsize=12, fontweight="bold")
+        axs[1].set_ylabel(ylabels[1], fontsize=12, fontweight="bold")
 
         # Gráfica 3
-        axs[2].semilogx(self.freq, tan_delta, 'k.', label='Data')
-        axs[2].set_xlabel("ω (rad/s)")
-        axs[2].set_ylabel(ylabels[2])
+        axs[2].semilogx(self.freq, tan_delta, 'ko', label='Data', markersize=6)
+        axs[2].set_xlabel("ω (rad/s)", fontsize=12, fontweight="bold")
+        axs[2].set_ylabel(ylabels[2], fontsize=12, fontweight="bold")
 
         # Gráfica 4
-        axs[3].plot(eps_real, eps_imag, 'ko', label='Data')
-        axs[3].set_xlabel(ylabels[3][0])
-        axs[3].set_ylabel(ylabels[3][1])
+        axs[3].plot(eps_real, eps_imag, 'ko', label='Data', markersize=6)
+        axs[3].set_xlabel(ylabels[3][0], fontsize=12, fontweight="bold")
+        axs[3].set_ylabel(ylabels[3][1], fontsize=12, fontweight="bold")
 
 
 
@@ -343,7 +345,7 @@ class DielectricGUI:
 
                 bo = BayesianStarter(objective, search_space)
                 try:
-                    best_params = bo.run(n_iter=30)  # asumiendo API (minimiza objective)
+                    best_params = bo.run(n_iter=1000)  # asumiendo API (minimiza objective)
                 except Exception as e:
                     print(f"BO failed for {model_name}: {e}")
                     best_params = base  # fallback
@@ -368,10 +370,10 @@ class DielectricGUI:
                 tan_d_fit = eps_i_fit / eps_r_fit
 
             label = model_name + (" (BO)" if use_bayes else "")
-            axs[0].semilogx(self.freq, eps_r_fit, label=label)
-            axs[1].semilogx(self.freq, eps_i_fit, label=label)
-            axs[2].semilogx(self.freq, tan_d_fit, label=label)
-            axs[3].plot(eps_r_fit, eps_i_fit, label=label)
+            axs[0].semilogx(self.freq, eps_r_fit, label=label, linewidth=3)
+            axs[1].semilogx(self.freq, eps_i_fit, label=label, linewidth=3)
+            axs[2].semilogx(self.freq, tan_d_fit, label=label, linewidth=3)
+            axs[3].plot(eps_r_fit, eps_i_fit, label=label, linewidth=3)
 
             # guardado de parámetros usados para reproducibilidad
             fitted_params = {pname: p.value for pname, p in res_imag.params.items()} if hasattr(res_imag, 'params') else {k: v['val'] for k, v in param_dict.items()}
@@ -398,11 +400,15 @@ class DielectricGUI:
             }
 
         for ax in axs:
-            ax.legend(); ax.grid(True)
+            ax.legend(prop={'weight': 'bold'})
+            ax.grid(True)
         fig.tight_layout()
         self.current_canvas = FigureCanvasTkAgg(fig, master=self.plot_frame)
-        self.current_canvas.draw()
+        self.fig=fig
+        #self.current_canvas.draw()
         self.current_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        self.current_canvas.get_tk_widget().bind("<Button-3>", self.save_plot)
+        self.current_canvas.draw()
         self.last_fit_bayes = use_bayes
 
     # ---------- reset ----------
@@ -422,6 +428,11 @@ class DielectricGUI:
         self.last_fit_bayes = False
         # Re-pinta inmediatamente con el fit normal
         self.run_fit()
+
+    def save_plot(self, event=None):
+        file_path=filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG Files", ".png"),("All Files",".*")])
+        if file_path:
+            self.fig.savefig(file_path)
 
     # ---------- export ----------
     def export_results(self):
