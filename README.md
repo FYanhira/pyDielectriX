@@ -1,4 +1,4 @@
-# ⚡ pyDipolAI
+# ⚡ pyDielectriX
 
 A Python-based tool for fitting dielectric spectroscopy data using classic and fractional models.  
 Includes Debye, Cole-Cole, Havriliak-Negami, and fractional models, with plans to integrate fuzzy logic and Bayesian optimization.  
@@ -30,7 +30,7 @@ Includes Debye, Cole-Cole, Havriliak-Negami, and fractional models, with plans t
 ---
 
 ## 📂 Project Structure
-pyDipolAI/
+pyDielectriX/
 │
 ├── models/               # Model classes (Debye, Cole–Cole, etc.)
 ├── DielectricModelUI.py  # Main GUI application
@@ -51,7 +51,7 @@ pyDipolAI/
 
 ## 🚀 Usage Example
 
-Here’s how to fit a dielectric model using `pyDipolAI`:
+Here’s how to fit a dielectric model using `pyDielectriX`:
 
 # ---------------------------------------------------------
 # STEP 1: Import the necessary libraries
@@ -114,6 +114,12 @@ plt.title("Cole–Cole Model Fit")
 plt.grid(True, which="both", ls="--", lw=0.5)
 plt.show()
 
+# Installation
+
+### 1. Install directly from GitHub
+
+```bash
+pip install git+https://github.com/FYanhira/pyDielectriX.git
 
 📜 License
 MIT License — Free to use, modify, and distribute with attribution.
