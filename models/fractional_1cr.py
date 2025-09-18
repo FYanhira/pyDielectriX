@@ -11,7 +11,7 @@ class Fractional1CRModel(BaseModel):
             'eps_inf': (None, None, None),
             'eps_s': (None, None, None),
             'tau': (1e-4, 1e-6, 1e-1),
-            'alpha': (0.5, 0.01, 1.0),
+            'gamma': (0.5, 0.01, 1.0),
         }
 
     def get_params(self):
@@ -38,10 +38,10 @@ class Fractional1CRModel(BaseModel):
             avg_high_freq * flex_factor
         )
 
-    def model_function(self, f, eps_inf, eps_s, tau, alpha):
+    def model_function(self, f, eps_inf, eps_s, tau, gamma):
             w = 2 * np.pi * f
-            A1 = (w * tau) ** (-alpha) * np.cos(alpha * np.pi / 2)
-            A2 = (w * tau) ** (-alpha) * np.sin(alpha * np.pi / 2)
+            A1 = (w * tau) ** (-gamma) * np.cos(gamma * np.pi / 2)
+            A2 = (w * tau) ** (-gamma) * np.sin(gamma * np.pi / 2)
 
             denom = (1 + A1)**2 + A2**2
 
@@ -51,11 +51,11 @@ class Fractional1CRModel(BaseModel):
             return eps_real + 1j * eps_imag
 
     def fit(self, f, eps_real, eps_imag, user_params=None):
-        def model_real(f, eps_inf, eps_s, tau, alpha):
-            return np.real(self.model_function(f, eps_inf, eps_s, tau, alpha))
+        def model_real(f, eps_inf, eps_s, tau, gamma):
+            return np.real(self.model_function(f, eps_inf, eps_s, tau, gamma))
 
-        def model_imag(f, eps_inf, eps_s, tau, alpha):
-            return np.imag(self.model_function(f, eps_inf, eps_s, tau, alpha))
+        def model_imag(f, eps_inf, eps_s, tau, gamma):
+            return np.imag(self.model_function(f, eps_inf, eps_s, tau, gamma))
 
         model_real_fit = Model(model_real)
         model_imag_fit = Model(model_imag)

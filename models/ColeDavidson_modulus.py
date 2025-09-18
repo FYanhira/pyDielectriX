@@ -10,7 +10,7 @@ class ColeDavidsonModulusModel(BaseModel):
             'M_inf': (None, None, None),  # se definen en set_auto_params_from_data
             'M_s': (None, None, None),    # se definen en set_auto_params_from_data
             'tau': (1e-4, 1e-6, 1e-1),    # valor inicial y rango fijos
-            'gamma': (0.5, 0.0, 1.0),
+            'beta': (0.5, 0.0, 1.0),
         }
 
     def get_params(self):
@@ -37,20 +37,20 @@ class ColeDavidsonModulusModel(BaseModel):
             avg_high_freq * flex_factor
         )
 
-    def model_function(self, f, M_inf, M_s, tau, gamma):
+    def model_function(self, f, M_inf, M_s, tau, beta):
         w = 2 * np.pi * f
         phi = np.arctan(w * tau)
-        denom= (M_s**2 + (M_inf - M_s) * (np.cos(phi)**gamma) * (2 * M_s * np.cos(gamma * phi) + (M_inf - M_s) * (np.cos(phi)**gamma)))
-        M_real = (M_inf * M_s) * (M_s + (M_inf - M_s) * (np.cos(phi)**gamma) * np.cos(gamma * phi)) / denom
-        M_imag = (M_inf * M_s) * ((M_inf - M_s) * (np.cos(phi)**gamma) * np.sin(gamma * phi)) / denom
+        denom= (M_s**2 + (M_inf - M_s) * (np.cos(phi)**beta) * (2 * M_s * np.cos(beta * phi) + (M_inf - M_s) * (np.cos(phi)**beta)))
+        M_real = (M_inf * M_s) * (M_s + (M_inf - M_s) * (np.cos(phi)**beta) * np.cos(beta * phi)) / denom
+        M_imag = (M_inf * M_s) * ((M_inf - M_s) * (np.cos(phi)**beta) * np.sin(beta * phi)) / denom
         return M_real + 1j * M_imag
 
     def fit(self, f, M_real, M_imag, user_params=None):
-        def model_real(f, M_inf, M_s, tau, gamma):
-            return np.real(self.model_function(f, M_inf, M_s, tau, gamma))
+        def model_real(f, M_inf, M_s, tau, beta):
+            return np.real(self.model_function(f, M_inf, M_s, tau, beta))
 
-        def model_imag(f, M_inf, M_s, tau, gamma):
-            return np.imag(self.model_function(f, M_inf, M_s, tau, gamma))
+        def model_imag(f, M_inf, M_s, tau, beta):
+            return np.imag(self.model_function(f, M_inf, M_s, tau, beta))
 
         model_real_fit = Model(model_real)
         model_imag_fit = Model(model_imag)
