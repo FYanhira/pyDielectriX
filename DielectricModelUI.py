@@ -1,3 +1,4 @@
+# (El encabezado de imports y definiciones previas se mantienen igual)
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from tkinter import scrolledtext  # <<--- agregado
@@ -27,9 +28,11 @@ from models.ColeDavidson_modulus import ColeDavidsonModulusModel
 from models.HN_modulus import HNModulusModel
 from models.fract_1cr_modulus import Fract1crModulusModel
 from models.fract_2cr_modulus import Fract2crModulusModel
+from models.Ionic_modulus import IonicModulusModel
 from models.MWS_Relax_modulus import MWSModulusModel
 
-# ================== métricas ==================
+
+# ================== metrics ==================
 def mean_absolute_deviation(y_true, y_pred):
     return np.mean(np.abs(y_true - y_pred))
 
@@ -56,7 +59,7 @@ class DielectricGUI:
         self.last_fit_bayes = False
         self.current_canvas = None          # lienzo de la figura para poder destruir y re-pintar
 
-        # --- modelos ---
+        # --- models ---
         self.registered_models = {
             'Debye': DebyeModel(),
             'Cole-Cole': ColeColeModel(),
@@ -71,6 +74,7 @@ class DielectricGUI:
             'Havriliak-Negami_Modulus': HNModulusModel(),
             'Fractional-1CR_Modulus': Fract1crModulusModel(),
             'Fractional-2CR_Modulus': Fract2crModulusModel(),
+            'Ionic_modulus': IonicModulusModel(),
             'MWS_Modulus': MWSModulusModel(),
         }
         self.permittivity_models = {k:self.registered_models[k] for k in list(self.registered_models.keys())[:7]}
@@ -111,13 +115,16 @@ class DielectricGUI:
         self.fit_bayes_button.grid(row=1, column=1, pady=(5,0), sticky='w')
 
         self.reset_button = tk.Button(self.top_control_frame, text="Reset to Normal Fit", command=self.reset_to_normal)
-        self.reset_button.grid(row=1, column=3, pady=(5,0), sticky='w')
+        self.reset_button.grid(row=1, column=2, pady=(5,0), sticky='w')
 
         self.export_button = tk.Button(self.top_control_frame, text="Export Results", command=self.export_results)
-        self.export_button.grid(row=1, column=4, pady=(5,0), sticky='w')
+        self.export_button.grid(row=0, column=4, pady=(5,0), sticky='w')
 
         self.fbn_button = tk.Button(self.top_control_frame, text="Evaluate Models with FBN", command=self.run_fbn)
-        self.fbn_button.grid(row=1, column=2, pady=(5,0), sticky='w')
+        self.fbn_button.grid(row=1, column=3, pady=(5,0), sticky='w')
+        self.bic_button = tk.Button(self.top_control_frame, text="Rank Models by BIC", command=self.run_bic_eval)
+        self.bic_button.grid(row=1, column=4, pady=(5,0), sticky='w')
+
 
         # === Fit Results -> ahora ScrolledText (en lugar de Canvas+Frame) ===
         self.result_container = tk.LabelFrame(self.top_control_frame, text="Fit Results")
@@ -229,8 +236,8 @@ class DielectricGUI:
         df.columns = df.columns.str.strip()
         try:
             self.freq = df['frequency'].values
-            real = df['eps_real'].values
-            imag = df['eps_imag'].values
+            real = df['real'].values
+            imag = df['imag'].values
             self.data = real + 1j*imag
             messagebox.showinfo("Success","CSV loaded successfully.")
             # autoinit params (si el modelo lo soporta)
@@ -394,13 +401,31 @@ class DielectricGUI:
             self.result_text.insert(tk.END, f"\n--- Imag part metrics ---\nR²={r2_imag:.4f}, MSE={mse_imag:.4g}, AAD={aad_imag:.4g}\n\n")
             self.result_text.see(tk.END)
 
+            # <<< ADDED: compute RSS, n_params and BIC, store in model_metrics >>>
+            # combined residuals (real + imag)
+            residuals_real = (eps_real - eps_r_fit)
+            residuals_imag = (eps_imag - eps_i_fit)
+            rss_real = np.sum(np.square(residuals_real))
+            rss_imag = np.sum(np.square(residuals_imag))
+            rss_total = float(rss_real + rss_imag) + 1e-20  # tiny eps to avoid log(0)
+            n_points = len(self.freq)
+            N_total = 2 * n_points  # real + imag
+            n_params = max(len(fitted_params), 1)  # at least 1 to avoid degenerate log
+            # BIC standard for gaussian errors: k*ln(n) + n*ln(RSS/n)
+            bic = float(n_params * np.log(N_total) + N_total * np.log(rss_total / N_total))
+            # print BIC to result pane
+            self.result_text.insert(tk.END, f"RSS_total={rss_total:.4g}, n_params={n_params}, BIC={bic:.4g}\n\n")
+            self.result_text.see(tk.END)
+            # <<< store additional metrics >>>
             self.model_metrics[model_name] = {
                 'r2_real': r2_real, 'mse_real': mse_real, 'aad_real': aad_real,
                 'r2_imag': r2_imag, 'mse_imag': mse_imag, 'aad_imag': aad_imag,
+                'rss': rss_total, 'n_params': n_params, 'bic': bic
             }
+            # <<< END ADDED >>>
 
         for ax in axs:
-            ax.legend(prop={'weight': 'bold'})
+            ax.legend(prop={'weight': 'bold', 'size': 14})
             ax.grid(True)
         fig.tight_layout()
         self.current_canvas = FigureCanvasTkAgg(fig, master=self.plot_frame)
@@ -437,26 +462,73 @@ class DielectricGUI:
     # ---------- export ----------
     def export_results(self):
         if not self.model_metrics:
-            messagebox.showwarning("No Data","Run fitting first!")
+            messagebox.showwarning("No Data", "Run fitting first!")
             return
-        file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files","*.csv")])
+
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv")]
+        )
         if not file_path:
             return
-        rows = []
+
+        params_source = self.bayes_fit_params if self.last_fit_bayes else self.normal_fit_params
+
+        # ====== 1) Export parameters + metrics ======
+        rows_params = []
         for model_name, metrics in self.model_metrics.items():
-            row = {'Model': model_name}
-            # Exporta los parámetros actualmente visibles en UI (lo que el usuario ve)
-            if model_name in self.param_inputs:
-                for key in self.param_inputs[model_name]:
-                    try:
-                        row[key] = float(self.param_inputs[model_name][key]['val'].get())
-                    except Exception:
-                        row[key] = None
+            row = {"Model": model_name}
+            if model_name in params_source:
+                for key, val in params_source[model_name].items():
+                    row[key] = float(val)
+
+            # Agregar RSS_total y BIC si existen
+            if 'rss' in metrics:
+                row['RSS_total'] = metrics['rss']
+            if 'bic' in metrics:
+                row['BIC'] = metrics['bic']
+
             row.update(metrics)
-            rows.append(row)
-        df = pd.DataFrame(rows)
-        df.to_csv(file_path, index=False)
-        messagebox.showinfo("Export","Results exported successfully.")
+            rows_params.append(row)
+
+        df_params = pd.DataFrame(rows_params)
+
+
+        # ====== 2) Export fitted curves ======
+        rows_curves = []
+        for model_name in params_source:
+            model_instance = self.registered_models[model_name]
+            param_dict = {k: {'val': v, 'min': -np.inf, 'max': np.inf}
+                          for k, v in params_source[model_name].items()}
+            res_real, res_imag = self._safe_fit(model_instance, self.freq,
+                                                np.real(self.data), np.imag(self.data),
+                                                param_dict)
+            if res_real and res_imag:
+                eps_r_fit = res_real.best_fit
+                eps_i_fit = res_imag.best_fit
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    tan_d_fit = eps_i_fit / eps_r_fit
+                for f, r, i, t in zip(self.freq, eps_r_fit, eps_i_fit, tan_d_fit):
+                    rows_curves.append({
+                        "Model": model_name,
+                        "Frequency": f,
+                        "Real_fit": r,
+                        "Imag_fit": i,
+                        "Tan_delta_fit": t
+                    })
+        df_curves = pd.DataFrame(rows_curves)
+
+        # ====== 3) Write to one CSV with clear separation ======
+        with open(file_path, "w", newline="") as f:
+            f.write("=== Parameters and Metrics ===\n")
+            df_params.to_csv(f, index=False)
+            f.write("\n")  # empty line
+            f.write("=== Fitted Curves ===\n")
+            df_curves.to_csv(f, index=False)
+
+        messagebox.showinfo("Export", "Parameters and curves exported in one file.")
+
+
 
     # ---------- FBN ----------
     def run_fbn(self):
@@ -478,6 +550,34 @@ class DielectricGUI:
         for k, v in sorted_probs.items():
             msg += f"{k}: {v*100:.1f}%\n"
         messagebox.showinfo("FBN Analysis", msg)
+
+    # ---------- BIC ----------
+    def run_bic_eval(self):
+        """Rank models based on their Bayesian Information Criterion (BIC)."""
+        if not self.model_metrics:
+            messagebox.showwarning("No Metrics", "Run fitting first!")
+            return
+
+        bic_values = []
+        for model, metrics in self.model_metrics.items():
+            bic = metrics.get('bic', None)
+            if bic is not None:
+                bic_values.append((model, bic))
+
+        if not bic_values:
+            messagebox.showinfo("BIC Ranking", "No BIC values available. Run fitting first.")
+            return
+
+        # Orden ascendente: menor BIC = mejor modelo
+        bic_values.sort(key=lambda x: x[1])
+        msg = "BIC Model Ranking (lower = better):\n\n"
+        for name, value in bic_values:
+            n_params = self.model_metrics[name].get('n_params', '–')
+            msg += f"{name}:  BIC={value:.3f}   (params={n_params})\n"
+
+        # Mostrar ranking en popup
+        messagebox.showinfo("BIC Ranking", msg)
+
 
 # -------------------- main --------------------
 if __name__ == "__main__":

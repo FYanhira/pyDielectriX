@@ -11,8 +11,8 @@ class HavriliakNegamiModel(BaseModel):
             'eps_inf': (None, None, None),
             'eps_s': (None, None, None),
             'tau': (1e-4, 1e-6, 1e-1),
-            'alpha': (0.5, 0.01, 1.0),  # simetría
-            'beta': (0.5, 0.01, 1.0),   # asimetría
+            'kappa': (0.5, 0.01, 1.0),  # simetría
+            'varphi': (0.5, 0.01, 1.0),   # asimetría
         }
 
     def get_params(self):
@@ -39,27 +39,27 @@ class HavriliakNegamiModel(BaseModel):
             avg_high_freq * flex_factor
         )
 
-    def model_function(self, f, eps_inf, eps_s, tau, alpha, beta):
+    def model_function(self, f, eps_inf, eps_s, tau, kappa, varphi):
             w = 2 * np.pi * f
             delta_eps = eps_s - eps_inf
             wtau = w * tau
 
-            mag = (1 + (2 * (wtau)**alpha) * (np.cos(np.pi * alpha / 2)) + (wtau**(2 * alpha))) **(-beta / 2)
-            theta = np.arctan2(wtau**alpha * np.sin(np.pi*alpha/2), 1 + wtau**alpha * np.cos(np.pi*alpha/2))
+            mag = (1 + (2 * (wtau)**kappa) * (np.cos(np.pi * kappa / 2)) + (wtau**(2 * kappa))) **(-varphi / 2)
+            theta = np.arctan2(wtau**kappa * np.sin(np.pi*kappa/2), 1 + wtau**kappa * np.cos(np.pi*kappa/2))
 
 
-            eps_real = eps_inf + delta_eps * mag * np.cos(beta * theta)
-            eps_imag = delta_eps * mag * np.sin(beta * theta)
+            eps_real = eps_inf + delta_eps * mag * np.cos(varphi * theta)
+            eps_imag = delta_eps * mag * np.sin(varphi * theta)
 
             return eps_real + 1j * eps_imag  # O bien: eps_real + 1j * (-eps_imag)
 
 
     def fit(self, f, eps_real, eps_imag, user_params=None):
-        def model_real(f, eps_inf, eps_s, tau, alpha, beta):
-            return np.real(self.model_function(f, eps_inf, eps_s, tau, alpha, beta))
+        def model_real(f, eps_inf, eps_s, tau, kappa, varphi):
+            return np.real(self.model_function(f, eps_inf, eps_s, tau, kappa, varphi))
 
-        def model_imag(f, eps_inf, eps_s, tau, alpha, beta):
-            return np.imag(self.model_function(f, eps_inf, eps_s, tau, alpha, beta))
+        def model_imag(f, eps_inf, eps_s, tau, kappa, varphi):
+            return np.imag(self.model_function(f, eps_inf, eps_s, tau, kappa, varphi))
 
         model_real_fit = Model(model_real)
         model_imag_fit = Model(model_imag)

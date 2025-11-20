@@ -10,8 +10,8 @@ class HNModulusModel(BaseModel):
             'M_inf': (None, None, None),  # se definen en set_auto_params_from_data
             'M_s': (None, None, None),    # se definen en set_auto_params_from_data
             'tau': (1e-4, 1e-6, 1e-1),    # valor inicial y rango fijos
-            'alpha': (0.5, 0.0, 1.0),
-            'gamma': (0.5, 0.0, 1.0),
+            'kappa': (0.5, 0.0, 1.0),
+            'varphi': (0.5, 0.0, 1.0),
         }
 
     def get_params(self):
@@ -38,21 +38,21 @@ class HNModulusModel(BaseModel):
             avg_high_freq * flex_factor
         )
 
-    def model_function(self, f, M_inf, M_s, tau, alpha, gamma):
+    def model_function(self, f, M_inf, M_s, tau, kappa, varphi):
         w = 2 * np.pi * f
-        A = np.sqrt(1 + 2 * (w * tau)**(1 - alpha) * np.sin(np.pi * alpha / 2) + (w * tau)**(2 * (1 - alpha)))
-        phi = np.arctan(((w * tau)**(1 - alpha) * np.cos(alpha * np.pi / 2)) / (1 + (w * tau)**(1 - alpha) * np.sin(alpha * np.pi / 2)))
-        denom = (M_s)**2 * (A)**(2*gamma) + 2*(A)**gamma *(M_inf - M_s)*(M_s) * np.cos(gamma*phi) + (M_inf - M_s)**2
-        M_real = ((M_inf * M_s) * ((M_s * (A)**gamma + (M_inf - M_s) * np.cos(gamma*phi)))* (A)**gamma) / denom
-        M_imag = ((M_inf * M_s) * (((M_inf - M_s) * np.sin(gamma*phi)))* (A)**gamma) / denom
+        A = np.sqrt(1 + 2 * (w * tau)**(1 - kappa) * np.sin(np.pi * kappa / 2) + (w * tau)**(2 * (1 - kappa)))
+        phi = np.arctan(((w * tau)**(1 - kappa) * np.cos(kappa * np.pi / 2)) / (1 + (w * tau)**(1 - kappa) * np.sin(kappa * np.pi / 2)))
+        denom = (M_s)**2 * (A)**(2*varphi) + 2*(A)**varphi *(M_inf - M_s)*(M_s) * np.cos(varphi*phi) + (M_inf - M_s)**2
+        M_real = ((M_inf * M_s) * ((M_s * (A)**varphi + (M_inf - M_s) * np.cos(varphi*phi)))* (A)**varphi) / denom
+        M_imag = ((M_inf * M_s) * (((M_inf - M_s) * np.sin(varphi*phi)))* (A)**varphi) / denom
         return M_real + 1j * M_imag
 
     def fit(self, f, M_real, M_imag, user_params=None):
-        def model_real(f, M_inf, M_s, tau, alpha, gamma):
-            return np.real(self.model_function(f, M_inf, M_s, tau, alpha, gamma))
+        def model_real(f, M_inf, M_s, tau, kappa, varphi):
+            return np.real(self.model_function(f, M_inf, M_s, tau, kappa, varphi))
 
-        def model_imag(f, M_inf, M_s, tau, alpha, gamma):
-            return np.imag(self.model_function(f, M_inf, M_s, tau, alpha, gamma))
+        def model_imag(f, M_inf, M_s, tau, kappa, varphi):
+            return np.imag(self.model_function(f, M_inf, M_s, tau, kappa, varphi))
 
         model_real_fit = Model(model_real)
         model_imag_fit = Model(model_imag)

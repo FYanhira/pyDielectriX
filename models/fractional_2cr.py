@@ -10,10 +10,10 @@ class Fractional2CRModel(BaseModel):
         self.params_init = {
             'eps_inf': (None, None, None),
             'eps_s': (None, None, None),
-            'tau_alpha': (1e-4, 1e-6, 1e-1),
-            'tau_beta': (1e-4, 1e-6, 1e-1),
-            'alpha': (0.5, 0.01, 1.0), 
-            'beta': (0.5, 0.01, 1.0),   
+            'tau_eta': (1e-4, 1e-6, 1e-1),
+            'tau_nu': (1e-4, 1e-6, 1e-1),
+            'eta': (0.5, 0.01, 1.0), 
+            'nu': (0.5, 0.01, 1.0),   
         }
 
     def get_params(self):
@@ -40,13 +40,14 @@ class Fractional2CRModel(BaseModel):
             avg_high_freq * flex_factor
         )
 
-    def model_function(self, f, eps_inf, eps_s, tau_alpha, tau_beta, alpha, beta):
+    def model_function(self, f, eps_inf, eps_s, tau_eta, tau_nu, eta, nu):
         w = 2 * np.pi * f
 
-        B1 = (w * tau_alpha) ** (-alpha) * np.cos(alpha * np.pi / 2) + \
-             (w * tau_beta) ** (-beta) * np.cos(beta * np.pi / 2)
-        B2 = (w * tau_alpha) ** (-alpha) * np.sin(alpha * np.pi / 2) + \
-             (w * tau_beta) ** (-beta) * np.sin(beta * np.pi / 2)
+        B1 = (w * tau_eta) ** (-eta) * np.cos(eta * np.pi / 2) + \
+             (w * tau_nu) ** (-nu) * np.cos(nu * np.pi / 2)
+             
+        B2 = (w * tau_eta) ** (-eta) * np.sin(eta * np.pi / 2) + \
+             (w * tau_nu) ** (-nu) * np.sin(nu * np.pi / 2)
 
         # Ecuaciones de ε′ y ε″ como parte de un número complejo
         eps_real = eps_s - ((eps_s - eps_inf) * (1 + B1)) / ((1 + B1)**2 + B2**2)
@@ -55,11 +56,11 @@ class Fractional2CRModel(BaseModel):
         return eps_real + 1j * eps_imag  # NOTA: Usamos +1j aquí porque lmfit maneja np.real e np.imag por separado
 
     def fit(self, f, eps_real, eps_imag, user_params=None):
-        def model_real(f, eps_inf, eps_s, tau_alpha, tau_beta, alpha, beta):
-            return np.real(self.model_function(f, eps_inf, eps_s, tau_alpha, tau_beta, alpha, beta))
+        def model_real(f, eps_inf, eps_s, tau_eta, tau_nu, eta, nu):
+            return np.real(self.model_function(f, eps_inf, eps_s, tau_eta, tau_nu, eta, nu))
 
-        def model_imag(f, eps_inf, eps_s, tau_alpha, tau_beta, alpha, beta):
-            return np.imag(self.model_function(f, eps_inf, eps_s, tau_alpha, tau_beta, alpha, beta))
+        def model_imag(f, eps_inf, eps_s, tau_eta, tau_nu, eta, nu):
+            return np.imag(self.model_function(f, eps_inf, eps_s, tau_eta, tau_nu, eta, nu))
 
         model_real_fit = Model(model_real)
         model_imag_fit = Model(model_imag)

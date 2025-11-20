@@ -5,12 +5,12 @@ import matplotlib.pyplot as plt
 eps_inf = 2.0
 eps_s   = 10.0
 delta_eps = eps_s - eps_inf
-tau = 1e-3   # tiempo característico
+tau = 1e-4   # tiempo característico (ajustado)
 alpha = 0.4  # para cole-cole y HN
 beta  = 0.75  # para cole-davidson y HN
 
 # Frecuencia (log)
-freq = np.logspace(0, 6, 200)   # 1 Hz a 1 MHz
+freq = np.logspace(1, 8, 400)   # ampliado rango de 10 Hz a 100 MHz
 w = 2 * np.pi * freq
 jw_tau = 1j * w * tau
 
@@ -107,10 +107,13 @@ plt.plot(epsr5, epsi5, label="Fractional_1CR", linewidth=2)
 plt.plot(epsr6, epsi6, label="Fractional_2CR", linewidth=2)
 plt.xlabel("ε'", fontsize=16, fontweight="bold")
 plt.ylabel("ε''", fontsize=16, fontweight="bold")
+plt.ylim(-0.5, None)
+plt.axis('equal')
 plt.tick_params(axis='both', which='major', labelsize=12)
 plt.legend(prop={'weight': 'bold', 'size': 12})
 plt.grid(True)
+plt.axis('equal')
 plt.tight_layout()
 plt.savefig("cole_cole.png", dpi=300)
 plt.show()
-ß
+

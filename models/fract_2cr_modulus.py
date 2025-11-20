@@ -9,10 +9,10 @@ class Fract2crModulusModel(BaseModel):
         self.params_init = {
             'M_inf': (None, None, None),  # se definen en set_auto_params_from_data
             'M_s': (None, None, None),    # se definen en set_auto_params_from_data
-            'tau_alpha': (1e-4, 1e-6, 1e-1),    # valor inicial y rango fijos
-            'tau_beta': (1e-4, 1e-6, 1e-1),
-            'alpha': (0.5, 0.0, 1.0),
-            'beta': (0.5, 0.0, 1.0),
+            'tau_eta': (1e-4, 1e-6, 1e-1),    # valor inicial y rango fijos
+            'tau_nu': (1e-4, 1e-6, 1e-1),
+            'eta': (0.5, 0.0, 1.0),
+            'nu': (0.5, 0.0, 1.0),
         }
 
     def get_params(self):
@@ -39,20 +39,20 @@ class Fract2crModulusModel(BaseModel):
             avg_high_freq * flex_factor
         )
 
-    def model_function(self, f, M_inf, M_s, tau_alpha, tau_beta, alpha, beta):
+    def model_function(self, f, M_inf, M_s, tau_eta, tau_nu, eta, nu):
         w = 2 * np.pi * f
-        A1 = (np.cos(alpha * np.pi / 2) * (w * tau_alpha)**(-alpha) + np.cos(beta * np.pi / 2) * (w * tau_beta)**(-beta))
-        A2 = (np.sin(alpha * np.pi / 2) * (w * tau_alpha)**(-alpha) + np.sin(beta * np.pi / 2) * (w * tau_beta)**(-beta))
+        A1 = (np.cos(eta * np.pi / 2) * (w * tau_eta)**(-eta) + np.cos(nu * np.pi / 2) * (w * tau_nu)**(-nu))
+        A2 = (np.sin(eta * np.pi / 2) * (w * tau_eta)**(-eta) + np.sin(nu * np.pi / 2) * (w * tau_nu)**(-nu))
         M_real = (M_inf * M_s * (M_s + A1 * (M_s + M_inf) + M_inf * (A1**2 + A2**2))) / ((M_s + M_inf * A1)**2 + (M_inf * A2)**2)
         M_imag = (M_inf * M_s * (M_inf - M_s) * A2) / ((M_s + M_inf * A1)**2 + (M_inf * A2)**2)
         return M_real + 1j * M_imag
 
     def fit(self, f, M_real, M_imag, user_params=None):
-        def model_real(f, M_inf, M_s, tau_alpha, tau_beta, alpha, beta):
-            return np.real(self.model_function(f, M_inf, M_s, tau_alpha, tau_beta, alpha, beta))
+        def model_real(f, M_inf, M_s, tau_eta, tau_nu, eta, nu):
+            return np.real(self.model_function(f, M_inf, M_s, tau_eta, tau_nu, eta, nu))
 
-        def model_imag(f, M_inf, M_s, tau_alpha, tau_beta, alpha, beta):
-            return np.imag(self.model_function(f, M_inf, M_s, tau_alpha, tau_beta, alpha, beta))
+        def model_imag(f, M_inf, M_s, tau_eta, tau_nu, eta, nu):
+            return np.imag(self.model_function(f, M_inf, M_s, tau_eta, tau_nu, eta, nu))
 
         model_real_fit = Model(model_real)
         model_imag_fit = Model(model_imag)
