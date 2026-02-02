@@ -4,7 +4,58 @@ from .base_model import BaseModel
 import numpy as np
 from lmfit import Model, Parameters
 
+
 class IonicModel(BaseModel):
+    def fit_real(self, f, eps_real, user_params=None, iter_cb=None):
+        """
+        Ajusta solo la parte real, permitiendo callback de iteración (para historial de error LM).
+        """
+        from lmfit import Model, Parameters
+        def model_real(f, eps_inf1, eps_s1, eps_inf2, eps_s2, tau_alpha, tau_beta, tau_gamma, alpha, beta, gamma):
+            return np.real(self.model_function(f, eps_inf1, eps_s1, eps_inf2, eps_s2, tau_alpha, tau_beta, tau_gamma, alpha, beta, gamma))
+        model_real_fit = Model(model_real)
+        params = Parameters()
+        if user_params:
+            for key in self.params_init:
+                _, minval, maxval = self.params_init[key]
+                val_str = user_params[key]['val']
+                val = float(val_str) if val_str not in ('', None) else None
+                if val is None:
+                    val = self.params_init[key][0]
+                params.add(key, value=val, min=minval, max=maxval)
+        else:
+            for key, (val, minval, maxval) in self.params_init.items():
+                if val is None:
+                    raise ValueError(f"Missing automatic value for parameter '{key}'")
+                params.add(key, value=val, min=minval, max=maxval)
+        result_real = model_real_fit.fit(eps_real, f=f, params=params, iter_cb=iter_cb)
+        return result_real
+
+    def fit_imag(self, f, eps_imag, user_params=None, iter_cb=None):
+        """
+        Ajusta solo la parte imaginaria, permitiendo callback de iteración (para historial de error LM).
+        """
+        from lmfit import Model, Parameters
+        def model_imag(f, eps_inf1, eps_s1, eps_inf2, eps_s2, tau_alpha, tau_beta, tau_gamma, alpha, beta, gamma):
+            return np.imag(self.model_function(f, eps_inf1, eps_s1, eps_inf2, eps_s2, tau_alpha, tau_beta, tau_gamma, alpha, beta, gamma))
+        model_imag_fit = Model(model_imag)
+        params = Parameters()
+        if user_params:
+            for key in self.params_init:
+                _, minval, maxval = self.params_init[key]
+                val_str = user_params[key]['val']
+                val = float(val_str) if val_str not in ('', None) else None
+                if val is None:
+                    val = self.params_init[key][0]
+                params.add(key, value=val, min=minval, max=maxval)
+        else:
+            for key, (val, minval, maxval) in self.params_init.items():
+                if val is None:
+                    raise ValueError(f"Missing automatic value for parameter '{key}'")
+                params.add(key, value=val, min=minval, max=maxval)
+        result_imag = model_imag_fit.fit(eps_imag, f=f, params=params, iter_cb=iter_cb)
+        return result_imag
+
     def __init__(self):
         super().__init__("Ionic")
         self.params_init = {
@@ -15,8 +66,8 @@ class IonicModel(BaseModel):
             'tau_alpha': (1e-4, 1e-10, 1),
             'tau_beta': (1e-4, 1e-10, 1),
             'tau_gamma': (1e-4, 1e-10, 1),
-            'alpha': (0.5, 0.01, 1.0), 
-            'beta': (0.5, 0.01, 1.0),   
+            'alpha': (0.5, 0.01, 1.0),
+            'beta': (0.5, 0.01, 1.0),
             'gamma': (0.5, 0.01, 1.0),
         }
 

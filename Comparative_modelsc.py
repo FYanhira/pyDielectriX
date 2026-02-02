@@ -11,8 +11,8 @@ beta  = 0.75  # para cole-davidson y HN
 
 # Frecuencia (log)
 freq = np.logspace(1, 8, 400)   # ampliado rango de 10 Hz a 100 MHz
-w = 2 * np.pi * freq
-jw_tau = 1j * w * tau
+omega = 2 * np.pi * freq  # omega en rad/s
+jw_tau = 1j * omega * tau
 
 # ---- Modelos ----
 # 1. Debye
@@ -48,13 +48,13 @@ epsr6, epsi6 = split(eps6)
 
 # ---- Gráfica (a) Parte real ----
 plt.figure(figsize=(6,5))
-plt.semilogx(freq, epsr1, label="Debye", linewidth=2)
-plt.semilogx(freq, epsr2, label="Cole-Cole", linewidth=2)
-plt.semilogx(freq, epsr3, label="Cole-Davidson", linewidth=2)
-plt.semilogx(freq, epsr4, label="Havriliak-Negami", linewidth=2)
-plt.semilogx(freq, epsr5, label="Fractional_1CR", linewidth=2)
-plt.semilogx(freq, epsr6, label="Fractional_2CR", linewidth=2)
-plt.xlabel("Frequency [Hz]", fontsize=16, fontweight="bold")
+plt.semilogx(omega, epsr1, label="Debye", linewidth=2)
+plt.semilogx(omega, epsr2, label="Cole-Cole", linewidth=2)
+plt.semilogx(omega, epsr3, label="Cole-Davidson", linewidth=2)
+plt.semilogx(omega, epsr4, label="Havriliak-Negami", linewidth=2)
+plt.semilogx(omega, epsr5, label="Fractional_1CR", linewidth=2)
+plt.semilogx(omega, epsr6, label="Fractional_2CR", linewidth=2)
+plt.xlabel(r"$\omega$ [rad/s]", fontsize=16, fontweight="bold")
 plt.ylabel("ε' (Real part)", fontsize=16, fontweight="bold")
 plt.tick_params(axis='both', which='major', labelsize=12)
 plt.legend(prop={'weight': 'bold', 'size': 12})
@@ -65,13 +65,13 @@ plt.show()
 
 # ---- Gráfica (b) Parte imaginaria ----
 plt.figure(figsize=(6,5))
-plt.semilogx(freq, epsi1, label="Debye", linewidth=2)
-plt.semilogx(freq, epsi2, label="Cole-Cole", linewidth=2)
-plt.semilogx(freq, epsi3, label="Cole-Davidson", linewidth=2)
-plt.semilogx(freq, epsi4, label="Havriliak-Negami", linewidth=2)
-plt.semilogx(freq, epsi5, label="Fractional_1CR", linewidth=2)
-plt.semilogx(freq, epsi6, label="Fractional_2CR", linewidth=2)
-plt.xlabel("Frequency [Hz]", fontsize=16, fontweight="bold")
+plt.semilogx(omega, epsi1, label="Debye", linewidth=2)
+plt.semilogx(omega, epsi2, label="Cole-Cole", linewidth=2)
+plt.semilogx(omega, epsi3, label="Cole-Davidson", linewidth=2)
+plt.semilogx(omega, epsi4, label="Havriliak-Negami", linewidth=2)
+plt.semilogx(omega, epsi5, label="Fractional_1CR", linewidth=2)
+plt.semilogx(omega, epsi6, label="Fractional_2CR", linewidth=2)
+plt.xlabel(r"$\omega$ [rad/s]", fontsize=16, fontweight="bold")
 plt.ylabel("ε'' (Imaginary part)",fontsize=16, fontweight="bold")
 plt.tick_params(axis='both', which='major', labelsize=12)
 plt.legend(prop={'weight': 'bold', 'size': 12})
@@ -82,13 +82,13 @@ plt.show()
 
 # ---- Gráfica (c) Tan delta ----
 plt.figure(figsize=(6,5))
-plt.semilogx(freq, epsi1/epsr1, label="Debye", linewidth=2)
-plt.semilogx(freq, epsi2/epsr2, label="Cole-Cole", linewidth=2)
-plt.semilogx(freq, epsi3/epsr3, label="Cole-Davidson", linewidth=2)
-plt.semilogx(freq, epsi4/epsr4, label="Havriliak-Negami", linewidth=2)
-plt.semilogx(freq, epsi5/epsr5, label="Fractional_1CR", linewidth=2)
-plt.semilogx(freq, epsi6/epsr6, label="Fractional_2CR", linewidth=2)
-plt.xlabel("Frequency [Hz]", fontsize=16, fontweight="bold")
+plt.semilogx(omega, epsi1/epsr1, label="Debye", linewidth=2)
+plt.semilogx(omega, epsi2/epsr2, label="Cole-Cole", linewidth=2)
+plt.semilogx(omega, epsi3/epsr3, label="Cole-Davidson", linewidth=2)
+plt.semilogx(omega, epsi4/epsr4, label="Havriliak-Negami", linewidth=2)
+plt.semilogx(omega, epsi5/epsr5, label="Fractional_1CR", linewidth=2)
+plt.semilogx(omega, epsi6/epsr6, label="Fractional_2CR", linewidth=2)
+plt.xlabel(r"$\omega$ [rad/s]", fontsize=16, fontweight="bold")
 plt.ylabel("Tan δ = ε''/ε'",fontsize=16, fontweight="bold")
 plt.tick_params(axis='both', which='major', labelsize=12)
 plt.legend(prop={'weight': 'bold', 'size': 12})
