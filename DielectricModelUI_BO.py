@@ -399,19 +399,25 @@ class DielectricGUI_BO:
             return
         scores = {}
         for model, m in self.model_metrics.items():
+            bic = m.get('bic', None)
+            if bic is None or not np.isfinite(bic):
+                continue
+            # FBN score penalized by BIC (lower BIC = less penalty)
             score_real = m['r2_real'] / (m['mse_real'] + m['aad_real'] + 1e-6)
             score_imag = m['r2_imag'] / (m['mse_imag'] + m['aad_imag'] + 1e-6)
-            scores[model] = 0.5 * (score_real + score_imag)
+            base_score = 0.5 * (score_real + score_imag)
+            penalized_score = base_score / (1.0 + max(bic, 0))  # ensure BIC is positive
+            scores[model] = penalized_score
         total = sum(max(s, 0) for s in scores.values())
         if total <= 0:
-            messagebox.showinfo("FBN Analysis", "Scores are non-positive; cannot compute probabilities.")
+            messagebox.showinfo("FBN+BIC Analysis", "Scores are non-positive; cannot compute probabilities.")
             return
         probs = {k: max(v, 0)/total for k, v in scores.items()}
         sorted_probs = dict(sorted(probs.items(), key=lambda x: x[1], reverse=True))
-        msg = "FBN Model Probabilities:\n"
+        msg = "FBN Model Probabilities (BIC-penalized):\n"
         for k, v in sorted_probs.items():
             msg += f"{k}: {v*100:.1f}%\n"
-        messagebox.showinfo("FBN Analysis", msg)
+        messagebox.showinfo("FBN+BIC Analysis", msg)
 
     def run_bic_eval(self):
         if not self.model_metrics:
