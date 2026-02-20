@@ -458,9 +458,19 @@ class DielectricGUI_BO:
         tan_delta = eps_imag / np.where(eps_real==0, np.nan, eps_real)
 
         if self.domain_var.get() == "Permittivity":
-            ylabels = ["Real part ε'", "Imaginary part ε''", "Tan δ = ε''/ε'", ("ε'","ε''")]
+            ylabels = [
+                r"$\mathbf{\varepsilon}_r'$ (Real part)",
+                r"$\mathbf{\varepsilon}_r''$ (Imaginary part)",
+                r"tan $\mathbf{\delta}$ = $\mathbf{\varepsilon}_r''/\mathbf{\varepsilon}_r'$",
+                (r"$\mathbf{\varepsilon}_r'$ (Real part)", r"$\mathbf{\varepsilon}_r''$ (Imaginary part)")
+            ]
         else:
-            ylabels = ["Real part M'", "Imaginary part M''", "Tan δ = M''/M'", ("M'","M''")]
+            ylabels = [
+                r"$\mathbf{M}'$ (Real part)",
+                r"$\mathbf{M}''$ (Imaginary part)",
+                r"tan $\mathbf{\delta}$ = $\mathbf{M}''/\mathbf{M}'$",
+                (r"$\mathbf{M}'$ (Real part)", r"$\mathbf{M}''$ (Imaginary part)")
+            ]
 
         axs[0].semilogx(self.freq, eps_real, 'ko', label='Data', markersize=6 )
         axs[0].set_xlabel("ω (rad/s)", fontsize=12, fontweight="bold")
@@ -547,7 +557,8 @@ class DielectricGUI_BO:
             with np.errstate(divide='ignore', invalid='ignore'):
                 tan_d_fit = eps_i_fit / eps_r_fit
 
-            label = model_name + (" (BO)" if use_bayes else "")
+            # Etiquetas con notación científica y negritas
+            label = model_name + (" (BO)" if use_bayes else " (LM)")
             axs[0].semilogx(self.freq, eps_r_fit, label=label, linewidth=3)
             axs[1].semilogx(self.freq, eps_i_fit, label=label, linewidth=3)
             axs[2].semilogx(self.freq, tan_d_fit, label=label, linewidth=3)
@@ -600,7 +611,7 @@ class DielectricGUI_BO:
                 print("  Total:", bo_error_history_total)
 
         for ax in axs:
-            ax.legend(prop={'weight': 'bold', 'size': 9})  # tamaño reducido
+            ax.legend(prop={'weight': 'bold', 'size': 9})  # tamaño mediano
             ax.grid(True)
         fig.tight_layout()
         self.current_canvas = FigureCanvasTkAgg(fig, master=self.plot_frame)
